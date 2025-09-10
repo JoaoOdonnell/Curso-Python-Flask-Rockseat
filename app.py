@@ -156,7 +156,7 @@ def add_to_cart(product_id):
 def remove_from_cart(product_id):
     user = User.query.get(int(current_user.id))
     product = Product.query.get(product_id)
-    
+
     if user and product:
         cart_item = CartItem.query.filter_by(
             user_id=current_user.id, product_id=product.id).first()
@@ -175,11 +175,31 @@ def remove_from_cart(product_id):
 def view_cart():
     user = User.query.get(int(current_user.id))
     cart_items = user.cart
+    cart_content = []
+
     for item in cart_items:
         product = Product.query.get(item.product_id)
-        item.product = product
-    return jsonify({'cart_items': [item.to_dict() for item in cart_items]}), 200
+        cart_content.append({
+            "id": item.id,
+            "user_id": item.user_id,
+            "product_id": item.product_id,
+            "product_name": product.name,
+            "product_price": product.price
+        })
+    return jsonify(cart_content), 200
 
+
+@app.route('/api/cart/checkout', methods=['POST'])
+@login_required
+def checkout():
+    user = User.query.get(int(current_user.id))
+    cart_items = user.cart
+
+    for item in cart_items:
+        db.session.delete(item)
+    db.session.commit()
+
+    return jsonify({'message': 'Checkout successful'}), 200
 
 
 if __name__ == '__main__':
