@@ -143,9 +143,43 @@ def add_to_cart(product_id):
     product = Product.query.get(product_id)
 
     if user and product:
+        cart_item = CartItem(user_id=user.id, product_id=product.id)
+        db.session.add(cart_item)
+        db.session.commit()
         return jsonify({'message': 'Product added to cart successfully'}), 200
     else:
         return jsonify({'error': 'Failed to add product to the cart'}), 400
+
+
+@app.route('/api/cart/remove/<int:product_id>', methods=['DELETE'])
+@login_required
+def remove_from_cart(product_id):
+    user = User.query.get(int(current_user.id))
+    product = Product.query.get(product_id)
+    
+    if user and product:
+        cart_item = CartItem.query.filter_by(
+            user_id=current_user.id, product_id=product.id).first()
+        if cart_item:
+            db.session.delete(cart_item)
+            db.session.commit()
+            return jsonify({'message': 'Product removed from cart successfully'}), 200
+        else:
+            return jsonify({'error': 'Product not found in the cart'}), 404
+    else:
+        return jsonify({'error': 'Failed to remove product from the cart'}), 400
+
+
+@app.route('/api/cart', methods=['GET'])
+@login_required
+def view_cart():
+    user = User.query.get(int(current_user.id))
+    cart_items = user.cart
+    for item in cart_items:
+        product = Product.query.get(item.product_id)
+        item.product = product
+    return jsonify({'cart_items': [item.to_dict() for item in cart_items]}), 200
+
 
 
 if __name__ == '__main__':
